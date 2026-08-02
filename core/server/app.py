@@ -93,6 +93,17 @@ class CapsWriterServer:
         if self.is_alive: return
         self.is_alive = True
 
+        # 文件夹移动/换路径后，自动更新开机自启动命令（失败不影响启动）
+        try:
+            import sys
+            base = str(self.base_dir)
+            if base not in sys.path:
+                sys.path.insert(0, base)
+            from settings.autostart import repair_autostart
+            repair_autostart()
+        except Exception:
+            pass
+
         # 注册退出信号处理
         register_signal(self.stop)
 

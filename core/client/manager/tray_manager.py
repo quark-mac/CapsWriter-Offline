@@ -41,6 +41,7 @@ class TrayManager:
                 ('✨ 热词', self._add_hotword),
                 ('🧹 清除记忆', self._clear_memory),
                 ('♻️ 重开音频', self._restart_audio),
+                ('⚙️ 设置', self._open_settings),
             ]
         )
         logger.info("托盘图标已启用")
@@ -95,6 +96,18 @@ class TrayManager:
         if text:
             from ..llm.llm_clipboard import copy_to_clipboard
             copy_to_clipboard(text)
+
+    def _open_settings(self):
+        """打开设置窗口回调"""
+        try:
+            import sys
+            base = str(self.app.base_dir)
+            if base not in sys.path:
+                sys.path.insert(0, base)
+            from settings.gui import open_settings_window
+            open_settings_window()
+        except Exception as e:
+            logger.warning(f"打开设置窗口失败: {e}")
 
     def _request_exit(self, icon=None, item=None):
         """托盘图标引用的退出回调"""

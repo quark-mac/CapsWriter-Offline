@@ -124,6 +124,16 @@ class CapsWriterClient:
         # 注册退出函数
         register_signal(self.stop)
 
+        # 文件夹移动/换路径后，自动更新开机自启动命令（失败不影响启动）
+        try:
+            base = str(self.base_dir)
+            if base not in sys.path:
+                sys.path.insert(0, base)
+            from settings.autostart import repair_autostart
+            repair_autostart()
+        except Exception:
+            pass
+
         files = [Path(f) for f in sys.argv[1:] if os.path.exists(f)]
 
         if files:

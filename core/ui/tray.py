@@ -329,8 +329,10 @@ class _TraySystem:
         t_monitor = threading.Thread(target=self.monitor_loop, daemon=True)
         t_monitor.start()
 
-        # 启动时隐藏窗口
-        self.toggle_window()
+        # 启动时强制隐藏窗口（不用 toggle_window：当窗口以隐藏方式创建时，
+        # toggle 会执行 SW_RESTORE 把窗口显示出来，导致控制台常驻）
+        if self.hwnd and user32:
+            user32.ShowWindow(self.hwnd, SW_HIDE)
 
 
 def enable_min_to_tray(name: Optional[str] = None, icon_path: Optional[str] = None, exit_callback=None, more_options: list = None) -> None:
