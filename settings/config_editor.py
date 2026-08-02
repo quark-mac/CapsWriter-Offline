@@ -14,8 +14,10 @@ import ast
 import shutil
 from pathlib import Path
 
-# 项目根目录（settings/config_editor.py -> 上溯两级）
-BASE_DIR = Path(__file__).resolve().parents[1]
+from . import get_base_dir
+
+# 项目根目录（兼容源码运行与打包为 exe 两种方式）
+BASE_DIR = get_base_dir()
 
 # 客户端配置字段分组：(分组名, [(字段名, 标签, 说明), ...])
 CLIENT_GROUPS = [

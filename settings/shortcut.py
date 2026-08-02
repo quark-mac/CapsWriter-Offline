@@ -12,10 +12,11 @@
 import ctypes
 import os
 import subprocess
-import sys
 from pathlib import Path
 
-BASE = Path(__file__).resolve().parents[1]
+from . import get_base_dir
+
+BASE = get_base_dir()
 
 PWSH = os.path.join(
     os.environ.get("SystemRoot", r"C:\Windows"),
@@ -25,10 +26,11 @@ PS1 = BASE / "settings" / "manage_shortcut.ps1"
 
 CREATE_NO_WINDOW = 0x08000000
 
-# 桌面快捷方式定义：(名称, 目标脚本, 描述)
+# 桌面快捷方式定义：(名称, 目标 exe, 描述)
+# 目标均为自包含的可执行文件，不依赖系统 Python
 SHORTCUTS = [
-    ("CapsWriter", "启动CapsWriter.pyw", "启动 CapsWriter 语音输入"),
-    ("CapsWriter 设置", "start_config.py", "打开 CapsWriter 设置"),
+    ("CapsWriter", "start_caps.exe", "启动 CapsWriter 语音输入"),
+    ("CapsWriter 设置", "start_config.exe", "打开 CapsWriter 设置"),
 ]
 
 _script_map = {name: script for name, script, _ in SHORTCUTS}
@@ -41,26 +43,12 @@ def get_desktop_path():
     return buf.value
 
 
-def _find_pythonw():
-    """定位 pythonw.exe（快捷方式用无窗口方式运行脚本）"""
-    exe = Path(sys.executable).resolve()
-    if exe.name.lower().startswith("python"):
-        cand = exe.parent / "pythonw.exe"
-        if cand.exists():
-            return str(cand)
-    import shutil
-    cand = shutil.which("pythonw")
-    if cand:
-        return cand
-    return str(exe.parent / "pythonw.exe")
-
-
 def _build_params(name):
-    """构造快捷方式参数：pythonw + 脚本，工作目录与图标指向当前目录"""
-    script = BASE / _script_map[name]
+    """构造快捷方式参数：指向自包含 exe，工作目录与图标指向当前目录"""
+    exe = BASE / _script_map[name]
     return {
-        "Target": _find_pythonw(),
-        "Arguments": f'"{script}"',
+        "Target": str(exe),
+        "Arguments": "",
         "Icon": f'{BASE / "assets" / "icon.ico"},0',
         "WorkDir": str(BASE),
     }

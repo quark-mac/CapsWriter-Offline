@@ -14,23 +14,37 @@ import subprocess
 import sys
 import time
 
-base = os.path.dirname(os.path.abspath(__file__))
-
 # 创建新控制台，并通过 STARTUPINFO 隐藏其窗口
 CREATE_NEW_CONSOLE = 0x00000010
 SW_HIDE = 0
 
 
-def _start(exe):
-    si = subprocess.STARTUPINFO()
-    si.dwFlags |= subprocess.STARTF_USESHOWWINDOW
-    si.wShowWindow = SW_HIDE
-    return subprocess.Popen(
-        [exe],
-        cwd=base,
-        creationflags=CREATE_NEW_CONSOLE,
-        startupinfo=si,
-    )
+def _get_base():
+    """项目根目录：源码运行用 __file__，打包为 exe 后用 exe 所在目录"""
+    if getattr(sys, "frozen", False):
+        return os.path.dirname(os.path.abspath(sys.executable))
+    return os.path.dirname(os.path.abspath(__file__))
+
+
+base = _get_base()
+
+
+def _start(exe, tag):
+    try:
+        si = subprocess.STARTUPINFO()
+        si.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+        si.wShowWindow = SW_HIDE
+        p = subprocess.Popen(
+            [exe],
+            cwd=base,
+            creationflags=CREATE_NEW_CONSOLE,
+            startupinfo=si,
+        )
+        _log(f"{tag} Popen ok, pid={p.pid}")
+        return p
+    except Exception as e:
+        _log(f"{tag} Popen 失败: {e!r}")
+        return None
 
 
 def _stop_old():
@@ -55,27 +69,42 @@ def _repair_autostart():
         return 0
 
 
+def _log(msg):
+    """记录启动器运行日志（windowed 模式下无控制台，便于排查）"""
+    try:
+        log_dir = os.path.join(base, "logs")
+        os.makedirs(log_dir, exist_ok=True)
+        with open(os.path.join(log_dir, "launcher_error.txt"), "a", encoding="utf-8") as f:
+            f.write(f"{time.strftime('%Y-%m-%d %H:%M:%S')} {msg}\n")
+    except Exception:
+        pass
+
+
 def main():
+    _log(f"start_caps 启动，base={base}")
     server = os.path.join(base, "start_server.exe")
     client = os.path.join(base, "start_client.exe")
     if not (os.path.exists(server) and os.path.exists(client)):
+        _log("缺少 start_server.exe 或 start_client.exe")
         raise SystemExit("缺少 start_server.exe 或 start_client.exe")
 
+    _log("开始修复自启动")
     _repair_autostart()
+    _log("结束旧进程")
     _stop_old()
     time.sleep(0.8)  # 等待旧进程完全退出
-    _start(server)
+    _log("启动服务端")
+    _start(server, "服务端")
     time.sleep(1.0)  # 等服务端先起来
-    _start(client)
+    _log("启动客户端")
+    _start(client, "客户端")
+    _log("启动流程完成")
 
 
 if __name__ == "__main__":
     try:
         main()
     except Exception as e:
-        # pythonw 无控制台，错误写入日志文件便于排查
-        try:
-            with open(os.path.join(base, "logs", "launcher_error.txt"), "a", encoding="utf-8") as f:
-                f.write(f"{time.strftime('%Y-%m-%d %H:%M:%S')} {e}\n")
-        except Exception:
-            pass
+        _log(f"启动器异常: {e!r}")
+    except SystemExit as e:
+        _log(f"启动器退出: {e}")

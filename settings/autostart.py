@@ -9,6 +9,8 @@
 import os
 from pathlib import Path
 
+from . import get_base_dir
+
 RUN_KEY_PATH = r"Software\Microsoft\Windows\CurrentVersion\Run"
 
 # wscript.exe 路径固定，可在任何环境下生成自启动命令（不依赖 python 路径）
@@ -27,11 +29,6 @@ LAUNCHER_ARGS = {
     "CapsWriter Server": "server",
     "CapsWriter Client": "client",
 }
-
-
-def get_base_dir():
-    """项目根目录（settings/autostart.py 上溯两级）"""
-    return Path(__file__).resolve().parents[1]
 
 
 def get_app_exe(name):

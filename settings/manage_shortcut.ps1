@@ -36,8 +36,8 @@ switch ($Action) {
     'repair' {
         if (-not (Test-Path $lnk)) { Write-Output 'absent'; exit 0 }
         $s = $ws.CreateShortcut($lnk)
-        # Up to date if Arguments already contains BaseDir
-        if ($s.Arguments -like "*$BaseDir*") {
+        # Up to date if Target already points into BaseDir
+        if ($s.TargetPath -like "$BaseDir*") {
             Write-Output 'ok'
         } else {
             if ($Target) { $s.TargetPath = $Target }
